@@ -72,7 +72,8 @@ def update_contents(server_contents):
     global contents
     contents = server_contents
     for index, content in enumerate(contents):
-        message_boxes[index].config(text=content)
+        content = content.decode('ascii')
+        message_boxes[index].config(text=content, fg=text_colour(content))
 
 
 def send_message(event=False):
@@ -89,6 +90,15 @@ def cooldown_timer():
     global on_cooldown
     time.sleep(cooldown_time)
     on_cooldown = False
+
+
+def text_colour(content):
+    if ":" in content:
+        return "Black"
+    elif "joined" in content:
+        return "Green"
+    else:
+        return "Red"
 
 
 '''
@@ -112,7 +122,7 @@ def chat_window():
 def attempt_join():
     global nickname
     nickname = nickname_entry.get()
-    if nickname not in ["Nickname", "Change nickname!"]:
+    if nickname != "Nickname" and len(nickname) <= 8:
         print("joining chat")
         # makes join button useless while attempting connection
         join_button.config(command="")
@@ -141,8 +151,12 @@ def join_success(successful):
 def rejoin_rechose():
     global nickname
     nickname = nickname_entry.get()
-    join_button.config(command="")
-    server.send("rechose_nickname".encode('ascii'))
+    if len(nickname) <= 8:
+        join_button.config(command="")
+        server.send("rechose_nickname".encode('ascii'))
+    else:
+        nickname_entry.delete(0, tk.END)
+        nickname_entry.insert(0, "Nickname too long!")
 
 
 def forget_lobby():
