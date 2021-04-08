@@ -11,7 +11,7 @@ server.listen()
 
 clients = []
 nicknames = []
-chat_contents = ["" for i in range(12)]
+chat_contents = ["".encode('ascii') for i in range(12)]
 
 
 def update_client_contents():
@@ -51,7 +51,7 @@ def handle(client):
                     print(f"Common nickname \"{nickname}\" chosen.")
                     client.send("common_nickname".encode('ascii'))
             else:
-                rotate_messages(message)
+                rotate_messages(message.encode('ascii'))
         except Exception as e:
             print(e)
             break
