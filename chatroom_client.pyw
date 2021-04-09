@@ -23,30 +23,51 @@ root.geometry(f'{window_dimensions["Width"]}x{window_dimensions["Height"]}')
 root.resizable(0, 0)
 
 '''
+ ---- MESSAGE CLASS FOR SENDING TEXT AND COLOUR OF MESSAGE TO CLIENT ----
+'''
+
+
+class MessageContent:
+    def __init__(self, text, colour):
+        self.text = text
+        self.colour = colour
+
+
+'''
  ---- NETWORKING ----
 '''
 
 
+# receiving messages from the server with a constant loop on a thread
 def receive():
     global server, sent_nickname
     while True:
         try:
             print("receiving from server")
+            # receives message from server
             message = server.recv(1024)
+            # sends nickname if not already sent nickname to server
             if not sent_nickname:
                 message = message.decode('ascii')
                 if message == "get_nickname":
+                    # sends nickname to server if server requests
                     server.send(nickname.encode('ascii'))
+                    # tests if joining server was successful (if name was unique)
+                    # receives message from server, gives parameter True if server sent "unique_nickname"
                     join_success(server.recv(1024).decode('ascii') == "unique_nickname")
             else:
                 # handling message box contents received
                 update_contents(pickle.loads(message))
         except Exception as e:
+            # printing exceptions/errors in the handling server messages for debugging
             print(e)
+            # close server after exception/error
             server.close()
             break
 
 
+# attempts server connection through user entered IP and pre-defined port
+# creates thread to receive messages from the server
 def server_connection():
     global server, host
     # creating server connection
@@ -57,6 +78,7 @@ def server_connection():
     receive_thread.start()
 
 
+# puts in nickname entry box that the client has the same nickname as another client in the server
 def common_nickname():
     nickname_entry.delete(0, tk.END)
     nickname_entry.insert(0, "Common nickname!")
@@ -71,11 +93,16 @@ def common_nickname():
 def update_contents(server_contents):
     global contents
     contents = server_contents
-    for index, content in enumerate(contents):
-        content = content.decode('ascii')
-        message_boxes[index].config(text=content, fg=text_colour(content))
+    print(contents)
+    for index, message_obj in enumerate(contents):
+        try:
+            #message_obj = pickle.loads(message_obj)
+            message_boxes[index].config(text=message_obj.text, fg=message_obj.colour)
+        except Exception as e:
+            print(e)
 
 
+# sends message to server if not on cooldown, then starts cooldown
 def send_message(event=False):
     global on_cooldown
     if not on_cooldown:
@@ -86,19 +113,11 @@ def send_message(event=False):
         threading.Thread(target=cooldown_timer).start()
 
 
+# runs on a thread to prevent chat spam
 def cooldown_timer():
     global on_cooldown
     time.sleep(cooldown_time)
     on_cooldown = False
-
-
-def text_colour(content):
-    if ":" in content:
-        return "Black"
-    elif "joined" in content:
-        return "Green"
-    else:
-        return "Red"
 
 
 '''
@@ -106,6 +125,7 @@ def text_colour(content):
 '''
 
 
+# places widgets for chat room
 def chat_window():
     # filler (spacing)
     tk.Label(root, height=23).grid(row=0, column=2)
@@ -119,6 +139,7 @@ def chat_window():
     root.bind('<Return>', send_message)
 
 
+# attempts server connection if nickname is within specification
 def attempt_join():
     global nickname
     nickname = nickname_entry.get()
@@ -133,6 +154,7 @@ def attempt_join():
         nickname_entry.insert(0, "Change nickname!")
 
 
+# run code whether joining server was successful or not
 def join_success(successful):
     global sent_nickname
     if successful:
@@ -148,6 +170,7 @@ def join_success(successful):
         common_nickname()
 
 
+# re-choosing nickname after choosing common nickname
 def rejoin_rechose():
     global nickname
     nickname = nickname_entry.get()
@@ -159,6 +182,7 @@ def rejoin_rechose():
         nickname_entry.insert(0, "Nickname too long!")
 
 
+# forgets lobby widgets
 def forget_lobby():
     join_button.grid_forget()
     title.grid_forget()
@@ -167,6 +191,7 @@ def forget_lobby():
     host_entry.grid_forget()
 
 
+# sends code to server when client closes
 def on_closing():
     server.send("window_close".encode('ascii'))
     root.destroy()
@@ -186,7 +211,7 @@ for i in range(12):
     message_boxes.append(tk.Label(root))
 
 # message box contents
-contents = ["" for i in message_boxes]
+contents = [MessageContent("", "Black") for i in message_boxes]
 
 '''
  ---- CREATING LOBBY WIDGETS AND PLACING THEM ----
