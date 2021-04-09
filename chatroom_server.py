@@ -11,20 +11,43 @@ server.listen()
 
 clients = []
 nicknames = []
-chat_contents = ["".encode('ascii') for i in range(12)]
+
+'''
+ ---- MESSAGE CLASS FOR SENDING TEXT AND COLOUR OF MESSAGE TO CLIENT ----
+'''
+
+
+class MessageContent:
+    def __init__(self, text, colour):
+        self.text = text
+        self.colour = colour
+
+
+chat_contents = [MessageContent("", "Black") for i in range(12)]
+
+'''
+ ---- HANDLING CLIENT/SERVER MESSAGES FOR DISPLAY ON GUI ----
+'''
+
+
+def rotate_messages(message, colour):
+    # rotating messages upwards
+    for index, content in enumerate(chat_contents[1:]):
+        chat_contents[index] = content
+
+    message_obj = MessageContent(message, colour)
+    chat_contents[len(chat_contents) - 1] = message_obj
+    update_client_contents()
+
+
+'''
+ ---- NETWORKING ----
+'''
 
 
 def update_client_contents():
     for client in clients:
         client.send(pickle.dumps(chat_contents))
-
-
-def rotate_messages(message):
-    # rotating messages upwards
-    for index, content in enumerate(chat_contents[1:]):
-        chat_contents[index] = content
-    chat_contents[len(chat_contents) - 1] = message
-    update_client_contents()
 
 
 def handle(client):
@@ -37,7 +60,7 @@ def handle(client):
                 clients.remove(client)
                 client.close()
                 nickname = nicknames[index]
-                rotate_messages(f'{nickname} left the chat.'.encode('ascii'))
+                rotate_messages(f'{nickname} left the chat.', "Red")
                 print(f'{nickname} left the chat.')
                 nicknames.remove(nickname)
                 break
@@ -51,7 +74,7 @@ def handle(client):
                     print(f"Common nickname \"{nickname}\" chosen.")
                     client.send("common_nickname".encode('ascii'))
             else:
-                rotate_messages(message.encode('ascii'))
+                rotate_messages(message, "Black")
         except Exception as e:
             print(e)
             break
@@ -86,7 +109,7 @@ def add_client(client, nickname):
     nicknames.append(nickname)
     clients.append(client)
 
-    rotate_messages(f"{nickname} joined the chat.".encode('ascii'))
+    rotate_messages(f"{nickname} joined the chat.", "Green")
     update_client_contents()
 
 
